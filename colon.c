@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "colon.h"
 #include "init.h"

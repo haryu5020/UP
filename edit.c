@@ -15,36 +15,41 @@ void setPrompt(char* prompt, WINDOW* wnd)
 	wclrtoeol(wnd);
 	mvwprintw(wnd, 0, 0, prompt);
 	wmove(wnd, y, x);
-	wrefrech(wnd);
+	wrefresh(wnd);
 }
 
-void insertModeEnter(WINDOW *wnd, int dy, int dx)
+void insertModeEnter(WINDOW *wnd)
 {
+	int i, j = 0;
 	int my, mx;
 	int* buf;	
 	int count;
+	int y, x;
+	getyx(wnd, y, x);
 
-	getyx(wnd, dy, dx);
 	getmaxyx(wnd, my, mx);
 	buf = (int *)malloc(sizeof(int*)*mx);
 
-        count = mx - cursorX;
+        count = mx - x;
 
         while( count > 0 )
         {
-        	buf[i++] = winch(editWindow);
-                wdelch(editWindow);
+        	buf[i++] = winch(wnd);
+                wdelch(wnd);
                 count--;
         }
         buf[i] = '\0';
-        wmove(editWindow,++cursorY, 0);
-        winsertln(editWindow);
+        wmove(wnd, ++y, 0);
+        winsertln(wnd);
         while( buf[j] != '\0' )
         {
-        	waddch(editWindow, buf[j]);
+        	waddch(wnd, buf[j]);
                 j++;
         }
-        wmove(editWindow, cursorY, 0);
+        wmove(wnd, y, 0);
+	if( winch(wnd) == '~'){
+		wdelch(wnd);
+	}
 }
 
 void insertModeBackspace(WINDOW *wnd, int dy, int dx)
@@ -53,8 +58,8 @@ void insertModeBackspace(WINDOW *wnd, int dy, int dx)
 	wmove(wnd, dy, --dx);
 	if( dx < 0 ) {
 		--dy;
-		while( cursorX != '\n' ){
-			dx++ 
+		while( dx != '\n' ){
+			dx++; 
 		}
 		wmove(wnd, dy, dx);
 		wdelch(wnd);
@@ -63,4 +68,11 @@ void insertModeBackspace(WINDOW *wnd, int dy, int dx)
 		wdelch(wnd);
 }
 
-void insertModePrintChar()
+void insertModePrintChar(WINDOW* wnd,int ch)
+{
+	int x,y;
+	getyx(wnd, y, x);
+	winsch(wnd, ch);
+	x++;
+	wmove(wnd, y, x);
+}

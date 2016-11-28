@@ -6,6 +6,7 @@
 
 #include "init.h"
 #include "edit.h"
+#include "colon.h"
 
 void initializeCurses()
 {

@@ -6,6 +6,7 @@
 #define KEY_Q 113
 #define TRUE 1
 #define FALSE 0
+#define FILE_MODE 0644
 
 void initializeCurses();
 void setEditWindow(WINDOW *wnd);
