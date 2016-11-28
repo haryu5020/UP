@@ -6,12 +6,35 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 
-#include "init.h"
+/*#include "init.h"
 #include "edit.h"
-#include "colon.h"
+#include "colon.h"*/
+
+#define KEY_ESC 27
+#define KEY_COLON 58
+#define KEY_INSERT 105
+#define KEY_ENT 10
+#define KEY_W 119
+#define KEY_Q 113
+#define KEY_D 100
+#define KEY_R 114
+#define KEY_X 120
+#define TRUE 1
+#define FALSE 0
+#define FILE_MODE 0644
 
 int cursorX = 0;
 int cursorY = 1;
+
+void initializeCurses();
+void moveCursor(int ch, int dy, int dx);
+void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);
+void insertModeEnter(WINDOW* wnd, int dy, int dx);
+void insertModePrintChar(WINDOW* wnd, int ch);
+void insertModeBackspace(WINDOW *wnd, int dy, int dx);
+void saveFile(WINDOW *wnd, char *argv[]);
+void commandModeDeleteLine(WINDOW *wnd, int dy, int dx);
+void commandModeDeleteOneChar(WINDOW *wnd, int dy, int dx);
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +46,10 @@ int main(int argc, char *argv[])
 	WINDOW *editWindow;
 	WINDOW *cmdWindow;
 	int load[2];
-	
+	int mx,my;
+	int i,j = 0;
+	int* buf;
+	int count;
 	/* If file is not exist, make a file */
 	if ( fd = open(argv[1], O_RDWR | O_APPEND) < 0 ){
 		if( fd = creat(argv[1], FILE_MODE) < 0 ){
@@ -33,14 +59,11 @@ int main(int argc, char *argv[])
 
 	/* WINDOW START */
 	initializeCurses();
+
 	/* Divide Screen, Edit / Command */
 	editWindow = derwin(stdscr, LINES - 1, COLS, 0, 0);
 	cmdWindow = derwin(stdscr, 1, COLS, LINES - 1, 0);
-	wrefresh(editWindow);
-	wrefresh(cmdWindow);
-
-	setEditWindow(editWindow);
-	wrefresh(editWindow);
+	refresh();
 
 	/* Permit Special Character */
 	keypad(editWindow, TRUE);
@@ -52,6 +75,7 @@ int main(int argc, char *argv[])
 		waddch(editWindow, load[0]); 
 	close(fd);
 	wmove(editWindow, 0, 0);
+	wrefresh(editWindow);
 	
 	/* Select Mode */
 	while(doExit != TRUE)
@@ -63,17 +87,24 @@ int main(int argc, char *argv[])
 			{
 			case KEY_COLON :
 				mode = 1;
-				setPrompt(":", cmdWindow);
+				setPrompt(":", editWindow,cmdWindow);
 				break;
 			case KEY_INSERT :
 				mode = 2;
-				setPrompt(" -- INSERT MODE -- ", cmdWindow);
+				setPrompt(" -- INSERT MODE -- ", editWindow, cmdWindow);
+				break;
+			case KEY_X :
+				commandModeDeleteOneChar(editWindow,cursorY, cursorX);
+				break;
+			case KEY_D :
+				commandModeDeleteLine(editWindow, cursorY, cursorX);
+				break;
+			case KEY_R :
 				break;
 			default :
 				moveCursor(ch, cursorY, cursorX);
 				break;
 			}
-			refresh();
 		}	
 		else if( mode == 1 )	// Colon Mode
 		{
@@ -81,30 +112,30 @@ int main(int argc, char *argv[])
 			{
 			case KEY_ESC :
 				mode = 0;
-				setPrompt(" ",cmdWindow);
+				setPrompt(" ",editWindow, cmdWindow);
 				break;
 			case KEY_W:
 				ch2 = KEY_W;
-				setPrompt(":w", cmdWindow);
+				setPrompt(":w",editWindow, cmdWindow);
 				break;
 			case KEY_Q:
 				ch2 = KEY_Q;
-				setPrompt(":q", cmdWindow);
+				setPrompt(":q",editWindow, cmdWindow);
 				break;	
 			case KEY_ENT:
 				if(ch2 == KEY_W)
 				{
-					//저장하는 함수
+					saveFile(editWindow, &argv[1]);	//저장하는 함수
+					setPrompt("File is written!", editWindow, cmdWindow); 
 				}
 				else if(ch2 == KEY_Q)
 				{		
-					doExit = TRUE;	//종료 함수
+					doExit = TRUE;	//exit
 				}
 				break;
 			default :
 				break;
 			}
-			refresh();
 					
 		}
 		else if( mode == 2 )	// Insert Mode
@@ -113,10 +144,11 @@ int main(int argc, char *argv[])
 			{
 			case KEY_ESC :
 				mode = 0;
-				setPrompt(" ",cmdWindow);
+				setPrompt(" ",editWindow, cmdWindow);
 				break;
 			case KEY_ENT :
-				insertModeEnter(editWindow);
+				insertModeEnter(editWindow, cursorY, cursorX);
+				break;	
 			case KEY_UP :
 			case KEY_DOWN :
 			case KEY_LEFT :
@@ -127,14 +159,24 @@ int main(int argc, char *argv[])
 				insertModeBackspace(editWindow, cursorY, cursorX);
 				break;
 			default :
-				insertModePrintChar(editWindow,ch);
+				insertModePrintChar(editWindow, ch);
+				cursorX += 1;
 				break;
 			}	
 		}
 	}
 	endwin();
 	return 0;
-}	
+}
+	
+void initializeCurses()
+{
+        initscr();
+        raw();
+        keypad(stdscr, TRUE);
+        noecho();
+}
+
 
 void moveCursor(int ch, int dy, int dx)
 {
@@ -149,10 +191,6 @@ void moveCursor(int ch, int dy, int dx)
 		move(dy + 1, dx);
 		cursorY = dy + 1;
 		cursorX = dx;
-		if(cursorY == (LINES - 1))
-		{
-			move(--cursorY, 0);
-		} 
 		break;
 	case KEY_LEFT :
 		move(dy, dx - 1);
@@ -167,4 +205,169 @@ void moveCursor(int ch, int dy, int dx)
 	default :
 		break;
 	}
+}
+
+void setPrompt(char* prompt, WINDOW* wndEdit, WINDOW* wndCmd)
+{
+        int ey, ex;
+	int my, mx;
+        getyx(wndEdit, ey, ex);
+
+	getmaxyx(wndCmd, my, mx);
+        wmove(wndCmd, 0, 0);
+        wclrtoeol(wndCmd);
+        mvwprintw(wndCmd, 0, 0, prompt);
+	mvwprintw(wndCmd, 0, mx - 20, "(%d, %d)", ex + 1, ey + 1);
+	wrefresh(wndCmd);
+
+        wmove(wndEdit, ey, ex);
+	wrefresh(wndEdit);
+}
+
+void insertModeEnter(WINDOW* wnd, int dy, int dx) 
+{
+	int i, j = 0;
+	int my, mx;
+	int *buf;
+	int count;
+
+	getyx(wnd, dy, dx);
+        getmaxyx(wnd, my, mx);
+        buf = (int*)malloc(sizeof(int*)*mx);
+
+        count = mx - dx;
+
+        while( count > 0 )
+        {
+	        buf[i++] = winch(wnd);
+                wdelch(wnd);
+                count--;
+        }
+        buf[i] = '\0';
+        wmove(wnd,++dy, 0);
+        winsertln(wnd);
+        while(buf[j] != '\0')
+        {
+        	waddch(wnd, buf[j]);
+                j++;
+        }
+        free(buf);
+        wmove(wnd, dy, 0);
+        wrefresh(wnd);
+}
+
+void insertModePrintChar(WINDOW* wnd,int ch)
+{
+        int x,y;
+        getyx(wnd, y, x);
+        winsch(wnd,ch);
+        x++;
+        wmove(wnd, y, x);
+	wrefresh(wnd);
+}
+
+void insertModeBackspace(WINDOW *wnd, int dy, int dx)
+{
+        getyx(wnd, dy, dx);
+        wmove(wnd, dy, --dx);
+        if( dx < 0 ) {		// if the line has no word
+                --dy;
+                while( dx != '\n' ){ // until last char
+                        dx++;
+                }
+                wmove(wnd, dy, dx);
+                wdelch(wnd);
+        }
+        else
+                wdelch(wnd);
+	wrefresh(wnd);
+}
+
+/* Get Last Line Coordinate */
+int getLastLine(WINDOW *wnd, int my, int mx) {
+        int i, j;
+        wmove(wnd, my - 1, mx - 1);
+        for (i = my - 1; i >= 0; i--) {
+                for (j = mx - 1; j >= 0; j--) {
+                        if (isspace(winch(wnd)))
+                                wmove(wnd, i, j);
+                        else
+                                return i;
+                }
+        }
+        return 0;
+}
+
+/* Get Last Char Coordinate In One Line*/
+int getLastChar(WINDOW *wnd, int mx) {
+        int y, x;
+        getyx(wnd, y, x);
+        x = mx - 1;
+        wmove(wnd, y, x);
+        while (isspace(winch(wnd)) && x > 0)
+                wmove(wnd, y, --x);
+        wmove(wnd, y, 0);
+        return x;
+}
+
+void saveFile(WINDOW *wnd, char *argv[]) {
+        int lChar;
+        int lLine;
+        int fd;
+        int my;
+        int mx;
+        int y = 0;
+        int x = 0;
+        char ch[2];
+
+        /* Overwrite */
+        fd = open(argv[0], O_RDWR | O_APPEND | O_TRUNC);
+
+        getmaxyx(wnd, my, mx);
+        lLine = getLastLine(wnd, my, mx);
+        wmove(wnd, 0, 0);
+        while (y <= lLine) {
+                x = 0;
+                lChar = getLastChar(wnd, mx);
+                while (x <= lChar) {
+                        ch[0] = winch(wnd);
+                        write(fd, ch, 1);
+                        wmove(wnd, y, ++x);
+                }
+                ch[0] = '\n';
+                write(fd, ch, 1);
+                wmove(wnd, ++y, 0);
+        }
+}
+
+void commandModeDeleteLine(WINDOW *wnd, int dy, int dx)
+{
+	int ch;
+	int i;
+
+	ch = wgetch(wnd);
+	if ( ch == 'd' )		//Delete 1 line
+	{
+		getyx(wnd, dy, dx);
+		wdeleteln(wnd);
+		wmove(wnd, dy, 0);
+		wrefresh(wnd);
+	}
+	else if ( ch == 'w' ) 		//Delete 1 word
+	{
+		while((i = winch(wnd)) != ' ')
+		{
+			wdelch(wnd);
+		}
+		wdelch(wnd);
+		wrefresh(wnd);
+	}
+}
+
+void commandModeDeleteOneChar(WINDOW *wnd, int dy, int dx)
+{
+	getyx(wnd, dy, dx);
+	wmove(wnd, dy, --dx);
+	wdelch(wnd);
+	wrefresh(wnd);
 }

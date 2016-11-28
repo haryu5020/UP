@@ -25,6 +25,7 @@ void insertModeEnter(WINDOW *wnd)
 	int* buf;	
 	int count;
 	int y, x;
+
 	getyx(wnd, y, x);
 
 	getmaxyx(wnd, my, mx);
@@ -72,7 +73,7 @@ void insertModePrintChar(WINDOW* wnd,int ch)
 {
 	int x,y;
 	getyx(wnd, y, x);
-	winsch(wnd, ch);
+	wprintw(wnd, ch);
 	x++;
 	wmove(wnd, y, x);
 }
