@@ -19,8 +19,9 @@
 int cursorX = 0;
 int cursorY = 1;
 
+
 void initializeCurses();
-void setPrompt(char *prompt, int c_Y, int c_X);
+void setPrompt(char *prompt, WINDOW* cmd);
 void moveCursor(int ch, int dy, int dx);
 int getLastChar(WINDOW *wnd, int mx);
 
@@ -59,7 +60,6 @@ int main(int argc, char *argv[])
 
 	/* Permit Special Character */
 	keypad(editWindow, TRUE);
-
 	keypad(cmdWindow, TRUE);
 
 	/* File Open and Load */
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	while( read(fd, load, 1) > 0 )
 		waddch(editWindow, load[0]); 
 	close(fd);
-	wmove(editWINDOW, 0, 0);
+	wmove(editWindow, 0, 0);
 	
 	/* Select Mode */
 	while(doExit != TRUE)
@@ -79,10 +79,11 @@ int main(int argc, char *argv[])
 			{
 			case KEY_COLON :
 				mode = 1;
+				setPrompt(":", cmdWindow);
 				break;
 			case KEY_INSERT :
 				mode = 2;
-				setPrompt(" -- INSERT MODE -- ", cursorY, cursorX);
+				setPrompt(" -- INSERT MODE -- ", cmdWindow);
 				break;
 			default :
 				moveCursor(ch, cursorY, cursorX);
@@ -96,15 +97,15 @@ int main(int argc, char *argv[])
 			{
 			case KEY_ESC :
 				mode = 0;
-				setPrompt("  ",cursorY, cursorX);
+				setPrompt(" ",cmdWindow);
 				break;
 			case KEY_W:
 				ch2 = KEY_W;
-				setPrompt(":w", cursorY, cursorX);
+				setPrompt(":w", cmdWindow);
 				break;
 			case KEY_Q:
 				ch2 = KEY_Q;
-				setPrompt(":q", cursorY, cursorX);
+				setPrompt(":q", cmdWindow);
 				break;	
 			case KEY_ENT:
 				if(ch2 == KEY_W)
@@ -128,30 +129,30 @@ int main(int argc, char *argv[])
 			{
 			case KEY_ESC :
 				mode = 0;
-				setPrompt("  ",cursorY, cursorX);
+				setPrompt(" ",cmdWindow);
 				break;
 			case KEY_ENT :
-				getyx(stdscr, cursorY, cursorX);
-				getmaxyx(stdscr, my, mx);
+				getyx(editWindow, cursorY, cursorX);
+				getmaxyx(editWindow, my, mx);
 				buf = (int *)malloc(sizeof(int*)*mx);
 
 				count = mx - cursorX;
 				
 				while( count > 0 )
 				{
-					buf[i++] = winch(stdscr);
-					delch();
+					buf[i++] = winch(editWindow);
+					wdelch(editWindow);
 					count--;
 				}
 				buf[i] = '\0';
-				move(++cursorY, 0);
-				insertln();
+				wmove(editWindow,++cursorY, 0);
+				winsertln(editWindow);
 				while( buf[j] != '\0' )
 				{
-					addch(buf[j]);
+					waddch(editWindow, buf[j]);
 					j++;
 				}
-				move(cursorY, 0);
+				wmove(editWindow, cursorY, 0);
 				break;
 			case KEY_UP :
 			case KEY_DOWN :
@@ -160,18 +161,18 @@ int main(int argc, char *argv[])
 				moveCursor(ch, cursorY, cursorX);
 				break;
 			case KEY_BACKSPACE :
-				getyx(stdscr, cursorY, cursorX);
-				move(cursorY, --cursorX);
+				getyx(editWindow, cursorY, cursorX);
+				wmove(editWindow, cursorY, --cursorX);
 				if( cursorX < 0 ) {
 					--cursorY;
 					while (cursorX != '\n'){
 						cursorX++;
 					}
-					move(cursorY,cursorX);
-					delch();
+					wmove(editWindow, cursorY, cursorX);
+					wdelch(editWindow);
 				}
 				else
-					delch();
+					wdelch(editWindow);
 				break;
 			default :
 				printw("%c",ch);
@@ -225,13 +226,15 @@ void moveCursor(int ch, int dy, int dx)
 	}
 }
 
-void setPrompt(char* prompt, int c_Y, int c_X)
-{
-	getyx(stdscr, c_Y, c_X);
-	move(LINES - 1, 0);
-	clrtoeol();
-	mvprintw(LINES - 1, 0, prompt);
-	move(c_Y, c_X);
+void setPrompt(char* prompt, WINDOW* cmd)
+{   
+	int y,x;
+	getyx(cmd, y, x); 
+	wmove(cmd, 0, 0);
+	wclrtoeol(cmd);
+	mvwprintw(cmd, 0, 0, prompt);
+	wmove(cmd, y, x);
+	wrefresh(cmd);
 }// bottom line write Command Line
 
 int getLastChar(WINDOW *wnd, int mx)
