@@ -14,6 +14,7 @@
 #define KEY_COLON 58
 #define KEY_INSERT 105
 #define KEY_ENT 10
+#define KEY_A 97 
 #define KEY_W 119
 #define KEY_Q 113
 #define KEY_D 100
@@ -30,11 +31,12 @@ void initializeCurses();
 void moveCursor(int ch, int dy, int dx);
 void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);
 void insertModeEnter(WINDOW* wnd, int dy, int dx);
-void insertModePrintChar(WINDOW* wnd, int ch);
+void insertModePrintChar(WINDOW* wnd, int ch, int dy, int dx);
 void insertModeBackspace(WINDOW *wnd, int dy, int dx);
 void saveFile(WINDOW *wnd, char *argv[]);
 void commandModeDeleteLine(WINDOW *wnd, int dy, int dx);
 void commandModeDeleteOneChar(WINDOW *wnd, int dy, int dx);
+void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd, int dy, int dx);
 
 int main(int argc, char *argv[])
 {
@@ -93,6 +95,10 @@ int main(int argc, char *argv[])
 				mode = 2;
 				setPrompt(" -- INSERT MODE -- ", editWindow, cmdWindow);
 				break;
+			case KEY_A :
+				mode = 2;
+				commandModeInsertA(editWindow, cmdWindow, cursorY, cursorX);
+				break;
 			case KEY_X :
 				commandModeDeleteOneChar(editWindow,cursorY, cursorX);
 				break;
@@ -101,8 +107,13 @@ int main(int argc, char *argv[])
 				break;
 			case KEY_R :
 				break;
-			default :
+			case KEY_UP :
+			case KEY_DOWN :
+			case KEY_LEFT :
+			case KEY_RIGHT :
 				moveCursor(ch, cursorY, cursorX);
+				break;
+			default :
 				break;
 			}
 		}	
@@ -159,7 +170,7 @@ int main(int argc, char *argv[])
 				insertModeBackspace(editWindow, cursorY, cursorX);
 				break;
 			default :
-				insertModePrintChar(editWindow, ch);
+				insertModePrintChar(editWindow, ch, cursorY, cursorX);
 				cursorX += 1;
 				break;
 			}	
@@ -256,13 +267,12 @@ void insertModeEnter(WINDOW* wnd, int dy, int dx)
         wrefresh(wnd);
 }
 
-void insertModePrintChar(WINDOW* wnd,int ch)
+void insertModePrintChar(WINDOW* wnd,int ch,int dy, int dx)
 {
-        int x,y;
-        getyx(wnd, y, x);
+        getyx(wnd, dy, dx);
         winsch(wnd,ch);
-        x++;
-        wmove(wnd, y, x);
+        dx++;
+        wmove(wnd, dy, dx);
 	wrefresh(wnd);
 }
 
@@ -371,3 +381,13 @@ void commandModeDeleteOneChar(WINDOW *wnd, int dy, int dx)
 	wdelch(wnd);
 	wrefresh(wnd);
 }
+
+void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd, int dy, int dx)
+{
+	getyx(wndEdit, dy, dx);	
+	wmove(wndEdit, dy, ++dx);
+	wrefresh(wndEdit);
+	
+	setPrompt(" -- INSERT MODE -- ", wndEdit, wndCmd);
+}
+
