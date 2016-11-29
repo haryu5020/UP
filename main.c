@@ -28,7 +28,7 @@ int cursorX = 0;
 int cursorY = 1;
 
 void initializeCurses();
-void moveCursor(int ch, int dy, int dx);
+void moveCursor(WINDOW* wnd, int ch, int dy, int dx);
 void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);
 void insertModeEnter(WINDOW* wnd, int dy, int dx);
 void insertModePrintChar(WINDOW* wnd, int ch, int dy, int dx);
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 			case KEY_DOWN :
 			case KEY_LEFT :
 			case KEY_RIGHT :
-				moveCursor(ch, cursorY, cursorX);
+				moveCursor(editWindow, ch, cursorY, cursorX);
 				break;
 			default :
 				break;
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 			case KEY_DOWN :
 			case KEY_LEFT :
 			case KEY_RIGHT :
-				moveCursor(ch, cursorY, cursorX);
+				moveCursor(editWindow, ch, cursorY, cursorX);
 				break;
 			case KEY_BACKSPACE :
 				insertModeBackspace(editWindow, cursorY, cursorX);
@@ -189,8 +189,10 @@ void initializeCurses()
 }
 
 
-void moveCursor(int ch, int dy, int dx)
+void moveCursor(WINDOW* wnd, int ch, int dy, int dx)
 {
+	int y, x;
+	getyx(wnd, y, x);
 	switch(ch)
 	{
 	case KEY_UP :
