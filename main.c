@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
-
+#include <ctype.h>
 /*#include "init.h"
 #include "edit.h"
 #include "colon.h"*/
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 	refresh();
 
 	/* Permit Special Character */
+	keypad(stdscr, TRUE);
 	keypad(editWindow, TRUE);
 	keypad(cmdWindow, TRUE);
 
@@ -135,8 +136,9 @@ int main(int argc, char *argv[])
 			case KEY_ENT:
 				if(ch2 == KEY_W)
 				{
-					saveFile(editWindow, &argv[1]);	//저장하는 함수
 					setPrompt("File is written!", editWindow, cmdWindow); 
+					wrefresh(cmdWindow);
+					saveFile(editWindow, &argv[1]);	//save edit contents
 				}
 				else if(ch2 == KEY_Q)
 				{		
