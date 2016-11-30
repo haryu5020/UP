@@ -24,7 +24,7 @@
 void initializeCurses();
 void moveCursor(WINDOW* wnd, int ch);
 void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);
-void insertModeEnter(WINDOW* wnd);
+void insertModeEnter(WINDOW* wndEdit);
 void insertModePrintChar(WINDOW* wnd, int ch);
 void insertModeBackspace(WINDOW *wnd);
 void saveFile(WINDOW *wnd, char *argv[]);
@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
 				if(ch2 == KEY_W)
 				{
 					setPrompt("File is written!", editWindow, cmdWindow); 
+					wrefresh(cmdWindow);
 					saveFile(editWindow, &argv[1]);	//save edit contents
 				}
 				else if(ch2 == KEY_Q)
@@ -231,7 +232,7 @@ void setPrompt(char* prompt, WINDOW* wndEdit, WINDOW* wndCmd)
 	wrefresh(wndEdit);
 }
 
-void insertModeEnter(WINDOW* wnd) 
+void insertModeEnter(WINDOW* wndEdit) 
 {
 	int i, j = 0;
 	int dy, dx;
@@ -239,29 +240,29 @@ void insertModeEnter(WINDOW* wnd)
 	int *buf;
 	int count;
 
-	getyx(wnd, dy, dx);
-        getmaxyx(wnd, my, mx);
+	getyx(wndEdit, dy, dx);
+        getmaxyx(wndEdit, my, mx);
         buf = (int*)malloc(sizeof(int*)*mx);
 
         count = mx - dx;
 
-        while( count > 0 )
+        while( count > 0 )//if the line is not full
         {
-	        buf[i++] = winch(wnd);
-                wdelch(wnd);
+	        buf[i++] = winch(wndEdit);
+                wdelch(wndEdit);
                 count--;
         }
-        buf[i] = '\0';
-        wmove(wnd, ++dy, 0);
-        winsertln(wnd);
-        while(buf[j] != '\0')
+        buf[i] = '\0';//if the line is full, last char is "\0"
+        wmove(wndEdit, ++dy, 0);//move cursor to next line
+        winsertln(wndEdit);//print cursor move to next line
+	while(buf[j] != '\0')//print character of last line continually
         {
-        	waddch(wnd, buf[j]);
+        	waddch(wndEdit, buf[j]);
                 j++;
         }
         free(buf);
-        wmove(wnd, dy, 0);
-        wrefresh(wnd);
+        wmove(wndEdit, dy, 0);
+        wrefresh(wndEdit);
 }
 
 void insertModePrintChar(WINDOW* wnd,int ch)
