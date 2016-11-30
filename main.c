@@ -6,10 +6,6 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 
-/*#include "init.h"
-#include "edit.h"
-#include "colon.h"*/
-
 #define KEY_ESC 27
 #define KEY_COLON 58
 #define KEY_INSERT 105
@@ -24,9 +20,6 @@
 #define FALSE 0
 #define FILE_MODE 0644
 
-int cursorX = 0;
-int cursorY = 1;
-
 void initializeCurses();
 void moveCursor(WINDOW* wnd, int ch);
 void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);
@@ -37,6 +30,7 @@ void saveFile(WINDOW *wnd, char *argv[]);
 void commandModeDeleteLine(WINDOW *wnd);
 void commandModeDeleteOneChar(WINDOW *wnd);
 void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd);
+void commandModeReplaceChar(WINDOW *wnd,int ch);
 
 int main(int argc, char *argv[])
 {
@@ -48,14 +42,17 @@ int main(int argc, char *argv[])
 	WINDOW *editWindow;
 	WINDOW *cmdWindow;
 	int load[2];
-	int mx,my;
-	int i,j = 0;
-	int* buf;
-	int count;
+	
+	if( argc != 2 )
+	{
+		printf("Usage : ./test [file_name]\n");
+		exit(1);
+	}
+
 	/* If file is not exist, make a file */
 	if ( fd = open(argv[1], O_RDWR | O_APPEND) < 0 ){
 		if( fd = creat(argv[1], FILE_MODE) < 0 ){
-			printf("Create Error");
+			printf("Create Errori\n");
 		}
 	}
 
@@ -105,6 +102,9 @@ int main(int argc, char *argv[])
 				commandModeDeleteLine(editWindow);
 				break;
 			case KEY_R :
+				setPrompt(" -- REPLACE MODE -- ", editWindow, cmdWindow);
+				commandModeReplaceChar(editWindow, ch);
+				setPrompt(" ", editWindow, cmdWindow);
 				break;
 			case KEY_UP :
 			case KEY_DOWN :
@@ -392,3 +392,13 @@ void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd)
 	setPrompt(" -- INSERT MODE -- ", wndEdit, wndCmd);
 }
 
+void commandModeReplaceChar(WINDOW *wnd, int ch)
+{
+	int dy, dx;
+	getyx(wnd, dy, dx);
+	wmove(wnd, dy, dx);
+	wdelch(wnd);
+	ch = getch();
+	winsch(wnd, ch);
+	wrefresh(wnd);
+}
