@@ -43,7 +43,9 @@ int main(int argc, char *argv[])
 	WINDOW *editWindow;
 	WINDOW *cmdWindow;
 	int load[2];
-	
+	int fileCheck = 0; 	
+	char buf[135] = "rm -rf ";
+
 	if( argc != 2 )
 	{
 		printf("Usage : ./test [file_name]\n");
@@ -55,6 +57,7 @@ int main(int argc, char *argv[])
 		if( fd = creat(argv[1], FILE_MODE) < 0 ){
 			printf("Create Errori\n");
 		}
+		fileCheck = 1;
 	}
 
 	/* WINDOW START */
@@ -140,9 +143,11 @@ int main(int argc, char *argv[])
 					setPrompt("File is written!", editWindow, cmdWindow); 
 					wrefresh(cmdWindow);
 					saveFile(editWindow, &argv[1]);	//save edit contents
+					fileCheck--;
 				}
 				else if(ch2 == KEY_Q)
 				{		
+					fileCheck++;
 					close(fd);
 					doExit = TRUE;	//exit
 				}
@@ -153,7 +158,7 @@ int main(int argc, char *argv[])
 					
 		}
 		else if( mode == 2 )	// Insert Mode
-		{
+		{	
 			switch(ch)
 			{
 			case KEY_ESC :
@@ -179,6 +184,14 @@ int main(int argc, char *argv[])
 		}
 	}
 	endwin();
+	/* Although you executed text editor, you don't want to save */
+	/*
+	if (fileCheck == 2) {
+		strcat(buf, argv[1]);
+		system(buf);
+	}
+
+*/
 	return 0;
 }
 	
