@@ -185,13 +185,10 @@ int main(int argc, char *argv[])
 	}
 	endwin();
 	/* Although you executed text editor, you don't want to save */
-	/*
 	if (fileCheck == 2) {
 		strcat(buf, argv[1]);
 		system(buf);
 	}
-
-*/
 	return 0;
 }
 	
