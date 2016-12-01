@@ -106,8 +106,7 @@ int main(int argc, char *argv[])
 			case KEY_D ://command mode d - delete line under cursor
 				commandModeDeleteLine(editWindow);
 				break;
-			case KEY_R ://command mode r - replace character under cursor with next 
-				character typed
+			case KEY_R ://command mode r - replace character under cursor with next character typed
 				setPrompt(" -- REPLACE MODE -- ", editWindow, cmdWindow);
 				commandModeReplaceChar(editWindow, ch);
 				setPrompt(" ", editWindow, cmdWindow);
