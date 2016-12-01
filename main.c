@@ -21,17 +21,17 @@
 #define FALSE 0
 #define FILE_MODE 0644
 
-void initializeCurses();
-void moveCursor(WINDOW* wnd, int ch);
-void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);
-void insertModeEnter(WINDOW* wndEdit);
-void insertModePrintChar(WINDOW* wnd, int ch);
-void insertModeBackspace(WINDOW *wnd);
-void saveFile(WINDOW *wnd, char *argv[]);
-void commandModeDeleteLine(WINDOW *wnd);
-void commandModeDeleteOneChar(WINDOW *wnd);
-void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd);
-void commandModeReplaceChar(WINDOW *wnd,int ch);
+void initializeCurses();//init window
+void moveCursor(WINDOW* wnd, int ch);//moving of cursor
+void setPrompt(char *prompt, WINDOW* wndEdit, WINDOW* wndCmd);//display edit part and command part
+void insertModeEnter(WINDOW* wndEdit);//enter ENTER
+void insertModePrintChar(WINDOW* wnd, int ch);//print input of key value
+void insertModeBackspace(WINDOW *wnd);//enter BACKSPACE
+void saveFile(WINDOW *wnd, char *argv[]);//save file
+void commandModeDeleteLine(WINDOW *wnd);//command mode dd
+void commandModeDeleteOneChar(WINDOW *wnd);//command mode x
+void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd);//command mode a(insert)
+void commandModeReplaceChar(WINDOW *wnd,int ch);//command mode r
 
 int main(int argc, char *argv[])
 {
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	WINDOW *cmdWindow;
 	int load[2];
 	char buf[135] = "rm -rf ";
-	int fileCheck = 0; 	
+	int fileCheck = 0; //check file save status	
 
 	if( argc != 2 )
 	{
@@ -96,21 +96,23 @@ int main(int argc, char *argv[])
 				mode = 2;
 				setPrompt(" -- INSERT MODE -- ", editWindow, cmdWindow);
 				break;
-			case KEY_A :
+			case KEY_A ://command mode a - append after cursor
 				mode = 2;
 				commandModeInsertA(editWindow, cmdWindow);
 				break;
-			case KEY_X :
+			case KEY_X ://command mode x - delete character under cursor
 				commandModeDeleteOneChar(editWindow);
 				break;
-			case KEY_D :
+			case KEY_D ://command mode d - delete line under cursor
 				commandModeDeleteLine(editWindow);
 				break;
-			case KEY_R :
+			case KEY_R ://command mode r - replace character under cursor with next 
+				character typed
 				setPrompt(" -- REPLACE MODE -- ", editWindow, cmdWindow);
 				commandModeReplaceChar(editWindow, ch);
 				setPrompt(" ", editWindow, cmdWindow);
 				break;
+				//movig of cursor
 			case KEY_UP :
 			case KEY_DOWN :
 			case KEY_LEFT :
@@ -137,17 +139,17 @@ int main(int argc, char *argv[])
 				ch2 = KEY_Q;
 				setPrompt(":q",editWindow, cmdWindow);
 				break;	
-			case KEY_ENT:
-				if(ch2 == KEY_W)
+			case KEY_ENT://execute command
+				if(ch2 == KEY_W)//command mode w - saves the current file without quitting
 				{
 					setPrompt("File is written!", editWindow, cmdWindow); 
 					wrefresh(cmdWindow);
 					saveFile(editWindow, &argv[1]);	//save edit contents
-					fileCheck--;
+					fileCheck--;//status of file save status
 				}
-				else if(ch2 == KEY_Q)
+				else if(ch2 == KEY_Q)//command mode q - exit without save file
 				{		
-					fileCheck++;
+					fileCheck++;//status of file save status
 					close(fd);
 					doExit = TRUE;	//exit
 				}
@@ -161,28 +163,30 @@ int main(int argc, char *argv[])
 		{
 			switch(ch)
 			{
-			case KEY_ESC :
+			case KEY_ESC ://change mode insert to command
 				mode = 0;
 				setPrompt(" ",editWindow, cmdWindow);
 				break;
-			case KEY_ENT :
+			case KEY_ENT ://new line
 				insertModeEnter(editWindow);
 				break;	
+				//moving of cursor
 			case KEY_UP :
 			case KEY_DOWN :
 			case KEY_LEFT :
 			case KEY_RIGHT :
 				moveCursor(editWindow, ch);
 				break;
-			case KEY_BACKSPACE :
+			case KEY_BACKSPACE ://remove one character
 				insertModeBackspace(editWindow);
 				break;
-			default :
+			default ://print key value
 				insertModePrintChar(editWindow, ch);
 				break;
 			}	
 		}
 	}
+	/*Exit Window*/
 	endwin();
 
 	/* Although you executed text editor, you don't want to save */
@@ -192,7 +196,7 @@ int main(int argc, char *argv[])
  	}
 	return 0;
 }
-	
+/*init window*/	
 void initializeCurses()
 {
         initscr();
@@ -201,7 +205,7 @@ void initializeCurses()
         noecho();
 }
 
-
+/*moving of cursor*/
 void moveCursor(WINDOW* wnd, int ch)
 {
 	int y,x;
@@ -225,7 +229,7 @@ void moveCursor(WINDOW* wnd, int ch)
 	}
 	wrefresh(wnd);
 }
-
+/*display edit part and command part*/
 void setPrompt(char* prompt, WINDOW* wndEdit, WINDOW* wndCmd)
 {
         int ey, ex;
@@ -242,7 +246,7 @@ void setPrompt(char* prompt, WINDOW* wndEdit, WINDOW* wndCmd)
         wmove(wndEdit, ey, ex);
 	wrefresh(wndEdit);
 }
-
+/*enter ENTER*/
 void insertModeEnter(WINDOW* wndEdit) 
 {
 	int i, j = 0;
@@ -275,7 +279,7 @@ void insertModeEnter(WINDOW* wndEdit)
         wmove(wndEdit, dy, 0);//move cursor to next line
         wrefresh(wndEdit);
 }
-
+/*print input of key value*/	
 void insertModePrintChar(WINDOW* wnd,int ch)
 {
 	int dy, dx;
@@ -285,7 +289,7 @@ void insertModePrintChar(WINDOW* wnd,int ch)
         wmove(wnd, dy, dx);
 	wrefresh(wnd);
 }
-
+/*enter BACKSPACE*/
 void insertModeBackspace(WINDOW *wnd)
 {
 	int dy, dx;
@@ -330,7 +334,7 @@ int getLastChar(WINDOW *wnd, int mx) {
         wmove(wnd, y, 0);
         return x;
 }
-
+/*save file*/
 void saveFile(WINDOW *wnd, char *argv[]) {
         int lChar;
         int lLine;
@@ -360,7 +364,7 @@ void saveFile(WINDOW *wnd, char *argv[]) {
                 wmove(wnd, ++y, 0);
         }
 }
-
+/*command mode dd*/
 void commandModeDeleteLine(WINDOW *wnd)
 {
 	int ch;
@@ -385,7 +389,7 @@ void commandModeDeleteLine(WINDOW *wnd)
 		wrefresh(wnd);
 	}
 }
-
+/*command mode x*/
 void commandModeDeleteOneChar(WINDOW *wnd)
 {
 	int y, x;
@@ -395,7 +399,7 @@ void commandModeDeleteOneChar(WINDOW *wnd)
 	wdelch(wnd);
 	wrefresh(wnd);
 }
-
+/*command mode a(insert)*/
 void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd)
 {
 	int dy, dx;
@@ -405,7 +409,7 @@ void commandModeInsertA(WINDOW *wndEdit, WINDOW *wndCmd)
 	
 	setPrompt(" -- INSERT MODE -- ", wndEdit, wndCmd);
 }
-
+/*command mode r*/
 void commandModeReplaceChar(WINDOW *wnd, int ch)
 {
 	int dy, dx;
