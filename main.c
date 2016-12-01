@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
 	WINDOW *editWindow;
 	WINDOW *cmdWindow;
 	int load[2];
+	char buf[135] = "rm -rf ";
 	int fileCheck = 0; 	
 
 	if( argc != 2 )
@@ -157,7 +158,7 @@ int main(int argc, char *argv[])
 					
 		}
 		else if( mode == 2 )	// Insert Mode
-		{	
+		{
 			switch(ch)
 			{
 			case KEY_ESC :
@@ -183,6 +184,12 @@ int main(int argc, char *argv[])
 		}
 	}
 	endwin();
+
+	/* Although you executed text editor, you don't want to save */
+ 	if (fileCheck == 2) {
+ 		strcat(buf, argv[1]);
+ 		system(buf);
+ 	}
 	return 0;
 }
 	
@@ -253,7 +260,7 @@ void insertModeEnter(WINDOW* wndEdit)
         while( count > 0 )//if the line is not full
         {
 	        buf[i++] = winch(wndEdit);
-                wdelch(wndEdit);
+        	wdelch(wndEdit);
                 count--;
         }
         buf[i] = '\0';//if the line is full, last char is "\0"
@@ -265,7 +272,7 @@ void insertModeEnter(WINDOW* wndEdit)
                 j++;
         }
         free(buf);
-        wmove(wndEdit, dy, 0);
+        wmove(wndEdit, dy, 0);//move cursor to next line
         wrefresh(wndEdit);
 }
 
